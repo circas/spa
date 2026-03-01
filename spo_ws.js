@@ -1,48 +1,27 @@
 /*
- * Spotify Ultra-Lite Ads Cleaner (Based on app2smile Proto Logic)
- * Sadece reklamları hedefler, oturum verilerine dokunmaz.
+ * Spotify Reklam Kesici - Agresif Mod
  */
 
+// 1. Gelen isteği ve yanıtı durdur
 const url = $request.url;
 
-// 1. OTURUM KORUMA (Safe-Pass)
-if (url.includes("heartbeat") || url.includes("session") || url.includes("v1/log")) {
-    $done({});
-}
-
-if (typeof $response !== "undefined" && $response.body) {
-    let body = $response.body;
-
-    try {
-        // Reklam mantığının geçtiği temel alanlar
-        if (url.includes("/ads/") || url.includes("/ad-logic/") || url.includes("/promotions/")) {
-            
-            // JSON paketlerini temizle
-            let obj = JSON.parse(body);
-            obj.ads = [];
-            obj.slots = [];
-            obj.messages = [];
-            if (obj.preroll) obj.preroll = [];
-            
-            body = JSON.stringify(obj);
-            $done({ body });
-
-        } else if (url.includes("v1/ad-slot")) {
-            // Protobuf (Binary) reklam slotu isteği gelirse boş döndür
-            // Bu kısım reklamın "yüklenmesini" engeller
-            $done({ body: "" });
-        } else {
-            $done({});
-        }
-    } catch (e) {
-        // Eğer veri Protobuf ise ve JSON.parse hata verirse:
-        // İçinde reklam anahtar kelimeleri geçen binary paketleri 'boş' ile değiştir
-        if (body.includes("ad-supported") || body.includes("ads-code")) {
-            $done({ body: "" });
-        } else {
-            $done({});
-        }
-    }
+// Eğer bu bir reklam isteğiyse (ad-logic veya audio-er)
+if (url.includes("ad-logic") || url.includes("ads") || url.includes("audio-er")) {
+    console.log("!!! SPOTIFY REKLAMI ENGELLENDİ VE DURDURULDU !!!");
+    
+    // Uygulamaya reklamın olmadığını ve geçilmesi gerektiğini söyleyen boş bir JSON döndür
+    // Bu, reklam motorunu "hata" moduna sokar.
+    $done({
+        status: "HTTP/1.1 200 OK",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            "slots": [],
+            "ads": [],
+            "intervals": [],
+            "disable_ads": true
+        })
+    });
 } else {
+    // Normal şarkı verisiyse dokunma
     $done({});
 }
