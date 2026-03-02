@@ -1,34 +1,31 @@
 /**
- * Spotify Premium & Anti-Offline (Fixed for QX)
+ * Spotify Ultra-Minimalist AdBlock (No-Offline)
+ * Sadece reklamları engeller, Premium inject yapmaz.
  */
 
-let url = $request.url;
-let obj;
+const url = $request.url;
 
-try {
-    // 1. Reklamları sessizce geç (204 No Content en güvenlisidir)
-    if (url.indexOf("ads-v2") !== -1 || url.indexOf("ad-logic") !== -1) {
-        $done({status: "HTTP/1.1 204 No Content", body: ""});
-    }
+// Spotify reklam ve takip (tracking) domainleri
+const adPatterns = [
+  "ads-v2",
+  "ad-logic",
+  "doubleclick",
+  "googlesyndication",
+  "analytics",
+  "crashlytics"
+];
 
-    // 2. Sadece JSON formatında olduğundan emin olduğumuz endpointler
-    if (url.indexOf("/v1/bootstrap") !== -1 || url.indexOf("/me") !== -1) {
-        obj = JSON.parse($response.body);
-        
-        // Sadece bu 4 satır yeterli, gerisine dokunma (Offline sebebi budur)
-        obj["product"] = "premium";
-        obj["type"] = "premium";
-        if (obj.features) {
-            obj.features["ads"] = false;
-            obj.features["on_demand"] = true;
-        }
+const isAd = adPatterns.some(p => url.includes(p));
 
-        $done({body: JSON.stringify(obj)});
-    } else {
-        // Geri kalan her şeyi (Audio, Playlist, Search) serbest bırak
-        $done({});
-    }
-} catch (e) {
-    // En ufak bir hatada orijinal yanıtı bozma, olduğu gibi gönder
+if (isAd) {
+    console.log("🛑 Reklam Engellendi: " + url.split('/')[2]);
+    // 204 No Content: "İstek başarılı ama içerik yok" diyerek uygulamayı bekletmez.
+    $done({
+        status: "HTTP/1.1 204 No Content",
+        headers: { "Content-Type": "text/plain" },
+        body: ""
+    });
+} else {
+    // Diğer tüm trafik (Müzik, Arama vb.) orijinal haliyle devam eder.
     $done({});
 }
