@@ -11,6 +11,8 @@ const audioPatterns = [
   "/play/",               // Oynatma komutları
   "spclient.wg.spotify.com1",       // Metadata ve parça bilgisi
   "spclient.wg.spotify.com2"      // Stream yetkilendirme
+  "gew4-spclient.spotify.com"
+  "spclient.wg.spotify.com"
 ];
 
 let shouldSkip = audioPatterns.some(p => url.includes(p));
