@@ -1,4 +1,4 @@
-// Quantumult X - Spotify Premium + AdBlock
+// X - spot premi  + AdBlock
 let body = $response.body ? JSON.parse($response.body) : {};
 let url = $request.url;
 
