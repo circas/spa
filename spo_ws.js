@@ -1,46 +1,34 @@
 /**
- * Spotify Stabil Premium & AdBlock (No-Offline Version)
+ * Spotify Premium & Anti-Offline (Fixed for QX)
  */
 
 let url = $request.url;
+let obj;
 
-// 1. REKLAM ENGELEME (En Güvenli Yol: Boş Yanıt)
-// Reklam sunucularına 204 (İçerik Yok) dönerek uygulamanın beklemesini engelleriz.
-if (url.includes("ads") || url.includes("ad-logic") || url.includes("doubleclick")) {
-    $done({ status: "HTTP/1.1 204 No Content", body: "" });
-} 
+try {
+    // 1. Reklamları sessizce geç (204 No Content en güvenlisidir)
+    if (url.indexOf("ads-v2") !== -1 || url.indexOf("ad-logic") !== -1) {
+        $done({status: "HTTP/1.1 204 No Content", body: ""});
+    }
 
-// 2. PREMIUM ÖZELLİKLERİ ENJEKTE ETME
-// Sadece bu spesifik endpoint'lerde işlem yapıyoruz.
-else if (url.includes("/v1/bootstrap") || url.includes("/v1/user") || url.includes("/v1/me")) {
-    let body = $response.body;
-    
-    try {
-        let obj = JSON.parse(body);
+    // 2. Sadece JSON formatında olduğundan emin olduğumuz endpointler
+    if (url.indexOf("/v1/bootstrap") !== -1 || url.indexOf("/me") !== -1) {
+        obj = JSON.parse($response.body);
         
-        // Sadece en kritik 3-4 alanı değiştiriyoruz (Offline düşürmemesi için)
+        // Sadece bu 4 satır yeterli, gerisine dokunma (Offline sebebi budur)
         obj["product"] = "premium";
         obj["type"] = "premium";
-        obj["premium"] = true;
-        
         if (obj.features) {
             obj.features["ads"] = false;
-            obj.features["shuffle"] = true;
-            obj.features["skip_unlimited"] = true;
             obj.features["on_demand"] = true;
         }
 
-        console.log("✅ Spotify Premium Enjekte Edildi");
-        $done({ body: JSON.stringify(obj) });
-
-    } catch (e) {
-        // Hata durumunda (JSON değilse) orijinal yanıtı bozmadan gönder
+        $done({body: JSON.stringify(obj)});
+    } else {
+        // Geri kalan her şeyi (Audio, Playlist, Search) serbest bırak
         $done({});
     }
-} 
-
-// 3. DİĞER TÜM TRAFİK (Audio, Images, Search)
-// Bu kısım çok kritik; müdahale etmeden geçmesine izin veriyoruz.
-else {
+} catch (e) {
+    // En ufak bir hatada orijinal yanıtı bozma, olduğu gibi gönder
     $done({});
 }
