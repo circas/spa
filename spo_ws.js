@@ -1,30 +1,33 @@
 /**
- * Spotify Aggressive Kill Script for  X
+ * Spotify Song Skipper for  X
+ * Amacı: Şarkıyı yükletmeyip bir sonrakine zorlamak.
  */
 
 const url = $request.url;
-const host = $request.headers['Host'] || $request.headers['host'];
 
-// Agresif hedef listesi
-const targets = [
-  "spclient.wg.spotify.com1",
-  "audio-ak-spotify-com",
-  "http://googleusercontent.com/spotify.com",
-  "spclient.wg.spotify.com1",
-  "spclient.wg.spotify.com2"
+// Sadece ses dosyalarını ve parça bilgilerini hedefleyen filtre
+const audioPatterns = [
+  "audio-ak-spotify-com", // CDN ses dosyaları
+  "/play/",               // Oynatma komutları
+  "spclient.wg.spotify.com1",       // Metadata ve parça bilgisi
+  "spclient.wg.spotify.com2"      // Stream yetkilendirme
 ];
 
-let isMatch = targets.some(t => url.includes(t) || (host && host.includes(t)));
+let shouldSkip = audioPatterns.some(p => url.includes(p));
 
-if (isMatch) {
-    console.log("🛑 Spotify Trafiği İmha Edildi: " + host);
+if (shouldSkip) {
+    // Şarkıyı "Yok" gibi göstererek uygulamanın sonrakine geçmesini sağlarız
+    console.log("⏩ Şarkı Atlatılıyor: " + url.split('/')[2]);
     
-    // Bağlantıyı anında reddet ve boş yanıt dön
     $done({
-        status: "HTTP/1.1 410 Gone",
-        headers: { "Content-Type": "text/plain", "Connection": "close" },
+        status: "HTTP/1.1 404 Not Found",
+        headers: { 
+            "Content-Type": "text/plain",
+            "Access-Control-Allow-Origin": "*" 
+        },
         body: ""
     });
 } else {
+    // Diğer tüm trafik (Arama, Görseller, Profil) normal devam eder
     $done({});
 }
