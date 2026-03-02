@@ -1,68 +1,46 @@
 /**
- * Spotify Premium & AdBlock (Stabil Versiyon)
+ * Spotify Stabil Premium & AdBlock (No-Offline Version)
  */
 
 let url = $request.url;
-let body = $response.body;
 
-// 1. KRİTİK HATA DÜZELTME: Ses dosyalarını engelleme!
-// 'audio-fa' ve 'audio-ak' gerçek müzik dosyalarıdır. 
-// Bunları engellersen uygulama offline düşer.
-if (url.includes('doubleclick') || /ads?|ad-logic|ads-v2/.test(url)) {
-    console.log("🛑 REKLAM ENGELLENDİ: " + url);
-    $done({ status: "HTTP/1.1 204 No Content", body: "" }); // 204 daha temizdir
-    return;
-}
+// 1. REKLAM ENGELEME (En Güvenli Yol: Boş Yanıt)
+// Reklam sunucularına 204 (İçerik Yok) dönerek uygulamanın beklemesini engelleriz.
+if (url.includes("ads") || url.includes("ad-logic") || url.includes("doubleclick")) {
+    $done({ status: "HTTP/1.1 204 No Content", body: "" });
+} 
 
-// 2. JSON GÜVENLİK KONTROLÜ
-try {
-    if (body) {
-        body = JSON.parse(body);
-    } else {
-        $done({}); // Gövde yoksa devam et
-        return;
-    }
-} catch (e) {
-    // Eğer gelen veri JSON değilse (Audio datası vb.), işleme ve devam et
-    $done({});
-    return;
-}
-
-// 3. PREMIUM ENJEKSİYON (Geliştirilmiş)
-if (/\/(me|user|account|features?|capabilities|player|v1\/bootstrap)/.test(url)) {
+// 2. PREMIUM ÖZELLİKLERİ ENJEKTE ETME
+// Sadece bu spesifik endpoint'lerde işlem yapıyoruz.
+else if (url.includes("/v1/bootstrap") || url.includes("/v1/user") || url.includes("/v1/me")) {
+    let body = $response.body;
     
-    // Temel Premium Verileri
-    const PREMIUM = {
-        "premium": true,
-        "product": "premium",
-        "can_subscribe": false,
-        "features": {
-            "shuffle": true,
-            "skip_unlimited": true,
-            "next_prev": true,
-            "high_quality": true,
-            "on_demand": true,
-            "ads": false
-        },
-        "capabilities": {
-            "shuffle_capable": true,
-            "skip_capable": true,
-            "next_prev_capable": true,
-            "on_demand_capable": true
+    try {
+        let obj = JSON.parse(body);
+        
+        // Sadece en kritik 3-4 alanı değiştiriyoruz (Offline düşürmemesi için)
+        obj["product"] = "premium";
+        obj["type"] = "premium";
+        obj["premium"] = true;
+        
+        if (obj.features) {
+            obj.features["ads"] = false;
+            obj.features["shuffle"] = true;
+            obj.features["skip_unlimited"] = true;
+            obj.features["on_demand"] = true;
         }
-    };
 
-    // Mevcut body ile birleştir
-    body = { ...body, ...PREMIUM };
+        console.log("✅ Spotify Premium Enjekte Edildi");
+        $done({ body: JSON.stringify(obj) });
 
-    // Player özel ayarları
-    if (url.includes("player")) {
-        body.shuffle_state = false; // İsteğe bağlı
-        body.skips = { "remaining": 999, "is_limited": false };
+    } catch (e) {
+        // Hata durumunda (JSON değilse) orijinal yanıtı bozmadan gönder
+        $done({});
     }
+} 
 
-    console.log(`👑 PREMIUM AKTİF: ${url}`);
-    $done({ body: JSON.stringify(body) });
-} else {
-    $done({ body: JSON.stringify(body) });
+// 3. DİĞER TÜM TRAFİK (Audio, Images, Search)
+// Bu kısım çok kritik; müdahale etmeden geçmesine izin veriyoruz.
+else {
+    $done({});
 }
